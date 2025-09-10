@@ -5,6 +5,7 @@ using Blazor.Diagrams.Core.Models;
 using Blazor.Diagrams.Core.Models.Base;
 using Blazor.Diagrams.Extensions;
 using Blazor.Diagrams.Models;
+using Blazor.Diagrams.Components;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Components.Web;
@@ -102,13 +103,31 @@ public class NodeRenderer : ComponentBase, IDisposable
 
         if (_isSvg)
         {
-            builder.AddAttribute(3, "transform",
-                $"translate({Node.Position.X.ToInvariantString()} {Node.Position.Y.ToInvariantString()})");
+            // SVG: сначала переносим в позицию нода, затем вращаем относительно верхнего-левого угла
+            var transform = $"translate({Node.Position.X.ToInvariantString()} {Node.Position.Y.ToInvariantString()})";
+            if (!Node.Rotation.AlmostEqualTo(0))
+            {
+                // Вращаем вокруг указанной точки опоры (в координатах локального прямоугольника)
+                var originX = (Node.Size?.Width ?? 0) * Node.RotationPivotX;
+                var originY = (Node.Size?.Height ?? 0) * Node.RotationPivotY;
+                transform += $" translate({originX.ToInvariantString()} {originY.ToInvariantString()}) rotate({Node.Rotation.ToInvariantString()}) translate({(-originX).ToInvariantString()} {(-originY).ToInvariantString()})";
+            }
+            builder.AddAttribute(3, "transform", transform);
         }
         else
         {
-            builder.AddAttribute(3, "style",
-                $"top: {Node.Position.Y.ToInvariantString()}px; left: {Node.Position.X.ToInvariantString()}px");
+            // HTML: позиционируем и вращаем контейнер нода вокруг верхнего-левого угла,
+            // чтобы его позиция оставалась якорем
+            var style = new StringBuilder()
+                .Append($"top: {Node.Position.Y.ToInvariantString()}px; left: {Node.Position.X.ToInvariantString()}px");
+            if (!Node.Rotation.AlmostEqualTo(0))
+            {
+                // CSS transform-origin в px от верхнего-левого угла
+                var originX = (Node.Size?.Width ?? 0) * Node.RotationPivotX;
+                var originY = (Node.Size?.Height ?? 0) * Node.RotationPivotY;
+                style.Append($"; transform-origin: {originX.ToInvariantString()}px {originY.ToInvariantString()}px; transform: rotate({Node.Rotation.ToInvariantString()}deg)");
+            }
+            builder.AddAttribute(3, "style", style.ToString());
         }
 
         builder.AddAttribute(4, "onpointerdown", EventCallback.Factory.Create<PointerEventArgs>(this, OnPointerDown));
