@@ -1,3 +1,82 @@
+# TMS.Z.Blazor.Diagrams
+
+## Changes from Original Z.Blazor.Diagrams
+
+This fork contains additional features and fixes developed for the TMS (Transportation Management System). Below are the main changes:
+
+### 🚀 New Features
+
+#### 1. Node Rotation Support - v3.0.3.1
+- **Description**: Added full support for node rotation with configurable pivot point
+- **Model Changes**:
+  - `NodeModel`: added `Rotation`, `RotationPivotX`, `RotationPivotY` properties
+  - Events: `RotationChanged`, `RotationPivotChanged`
+  - Automatic AABB (Axis-Aligned Bounding Box) recalculation for correct bounds
+- **Visualization**:
+  - `NodeRenderer`: container rotation with pivot point consideration (CSS `transform-origin` / `translate+rotate`)
+  - Support for both HTML and SVG rendering
+- **Compatibility**: No breaking changes - new properties are optional
+- **Version**: 3.0.3.1 (TMS.Z.Blazor.Diagrams, TMS.Z.Blazor.Diagrams.Core)
+
+#### 2. Rendering and Performance Optimization - v3.0.3.6
+- **Performance Improvements**: Rendering optimization and pointer event handling
+- **Virtualization**: Enhanced node visibility handling with size change subscriptions
+
+### 🛠 Technical Fixes
+
+#### 3. CSS-hiding Virtualization Mode
+- **Problem**: Standard virtualization caused catastrophic delays during pan/zoom (up to 1700ms) due to heavy component recreation
+- **Solution**: New mode where invisible nodes are hidden via `display:none` instead of DOM removal
+- **Benefits**:
+  - Eliminates mount/unmount overhead during pan/zoom
+  - Components remain mounted in memory
+  - SignalR updates work normally without additional caching
+  - Drag latency reduced from ~1700ms to ~150ms
+- **Changed Files**:
+  - `DiagramVirtualizationOptions.cs`: new `CssHiding` property
+  - `NodeRenderer.cs`: CSS-hiding logic for HTML and SVG nodes
+  - Support in consuming application via `SchemeVirtualizationOptions`
+
+#### 4. Drag Release Fix (Pointer Capture)
+- **Problem**: Diagram remained in drag mode when mouse button was released outside `DiagramCanvas`
+- **Solution**: Implementation of pointer capture and document-level fallback handlers
+- **Technical Details**:
+  - `script.js`: Pointer capture on `.diagram-canvas`, document-level handlers
+  - `DiagramCanvas.razor.cs`: `OnPointerUpOutside` method for drag completion
+  - Support for both WASM and Server-side Blazor
+- **Result**: Proper drag completion regardless of mouse release location
+
+### 📊 Performance Comparison
+
+| Virtualization Mode | Drag Latency | Scripting Overhead | DOM Memory |
+|---------------------|-------------|-------------------|------------|
+| Disabled | ~150ms | low | all nodes |
+| Standard | ~1700ms | ~725ms | viewport only |
+| CSS-hiding | ~150ms | low | all nodes |
+
+### 🔧 Configuration
+
+To use new features in your application:
+
+```json
+{
+  "Virtualization": {
+    "VirtualizationEnabled": true,
+    "CssHidingEnabled": true,
+    "VirtualizationPaddingPx": 200,
+    "ProgressiveOnViewport": false
+  }
+}
+```
+
+### 📝 Change Documentation
+
+Detailed technical documentation is available in `src/Documents/`:
+- `CSS_HIDING_VIRTUALIZATION.md` - Complete CSS-hiding mode description
+- `POINTER_CAPTURE_DRAG_RELEASE_FIX.md` - Technical details of drag release fix
+
+---
+
 # Blazor.Diagrams
 
 ![](ZBD.png)
