@@ -4,11 +4,11 @@
     <Nullable>enable</Nullable>
     <Authors>zHaytam</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <AssemblyVersion>3.0.3.3</AssemblyVersion>
-    <FileVersion>3.0.3.3</FileVersion>
+    <AssemblyVersion>3.0.3.5</AssemblyVersion>
+    <FileVersion>3.0.3.5</FileVersion>
     <RepositoryUrl>https://github.com/Blazor-Diagrams/Blazor.Diagrams</RepositoryUrl>
     <Description>A fully customizable and extensible all-purpose diagrams library for Blazor</Description>
-    <Version>3.0.3.3</Version>
+    <Version>3.0.3.5</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>blazor diagrams diagramming svg drag</PackageTags>
     <PackageId>TMS.Z.Blazor.Diagrams</PackageId>
@@ -16,18 +16,34 @@
     <Product>TMS.Z.Blazor.Diagrams</Product>
     <PackageIcon>ZBD.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <TargetFrameworks>net8.0</TargetFrameworks>
+    <!-- Multi-targeting для совместимости с проектами net6-net9. Без этого возможна ошибка "не совместим с платформами all" при установке из приватного feed. -->
+    <TargetFrameworks>net9.0;net8.0;net7.0;net6.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+    <!-- Core использует SvgPathProperties — нужен при встраивании Core в пакет -->
+    <PackageReference Include="SvgPathProperties" />
   </ItemGroup>
 
 
+  <!-- PrivateAssets="all" — Core встраивается в пакет (IncludeCoreDllInPackage), чтобы не требовать отдельный NuGet TMS.Z.Blazor.Diagrams.Core. Иначе ошибка "не совместим с платформами all" при отсутствии Core в feed. -->
   <ItemGroup>
-    <ProjectReference Include="..\Blazor.Diagrams.Core\Blazor.Diagrams.Core.csproj" />
+    <ProjectReference Include="..\Blazor.Diagrams.Core\Blazor.Diagrams.Core.csproj" PrivateAssets="all" />
   </ItemGroup>
+
+  <!-- Включаем Blazor.Diagrams.Core.dll в lib каждой TFM (при PrivateAssets DLL не копируется автоматически) -->
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeCoreDllInPackage</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+  <Target Name="IncludeCoreDllInPackage">
+    <ItemGroup>
+      <BuildOutputInPackage Include="$(OutputPath)Blazor.Diagrams.Core.dll" Condition="Exists('$(OutputPath)Blazor.Diagrams.Core.dll')">
+        <TargetPath>Blazor.Diagrams.Core.dll</TargetPath>
+      </BuildOutputInPackage>
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <None Include="..\..\ZBD.png">
