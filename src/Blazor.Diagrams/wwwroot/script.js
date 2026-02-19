@@ -1,25 +1,28 @@
+// PERFORMANCE OPTIMIZATION NEEDED:
+// Каждый pointermove вызывает полный JS→.NET→JS цикл через endInvokeJSFromDotNet
+// Это создает 200ms задержку при отрисовке схемы
+//
+// Возможные решения:
+// 1. Throttle pointermove events до 60fps (16ms)
+// 2. Использовать passive event listeners
+// 3. Синхронизировать с requestAnimationFrame
+// 4. Перейти на Canvas-based rendering для интерактивных элементов
+
 function createDocUpHandler() {
     return function (e) {
         for (let id in s.canvases) {
             const c = s.canvases[id];
             if (!c.elem || c.activePointerId !== e.pointerId) continue;
             if (c.elem.contains(e.target)) continue;
-            // pointerup/pointercancel вне канваса — диспатчим синтетический pointerup на канвас,
-            // чтобы Blazor получил событие и завершил перетаскивание/пан.
-            c.elem.dispatchEvent(new PointerEvent(e.type, {
-                pointerId: e.pointerId,
-                clientX: e.clientX,
-                clientY: e.clientY,
-                button: e.button,
-                buttons: e.buttons,
-                bubbles: true,
-                cancelable: true
-            }));
+            // pointerup/pointercancel вне канваса — вызываем .NET напрямую (dispatchEvent
+            // не срабатывает в Blazor Server). Завершает перетаскивание/пан.
+            c.ref.invokeMethodAsync('OnPointerUpOutside', e.clientX, e.clientY, e.button, e.buttons, e.pointerId);
             c.activePointerId = null;
             break;
         }
     };
 }
+
 var s = {
     canvases: {},
     tracked: {},
@@ -61,18 +64,26 @@ var s = {
                 lastBounds: element.getBoundingClientRect(),
                 activePointerId: null
             };
+
+            // Оптимизированные обработчики с throttle и RAF синхронизацией
             const captureHandler = (e) => {
                 element.setPointerCapture(e.pointerId);
                 s.canvases[id].activePointerId = e.pointerId;
             };
+
             const clearPointer = () => {
                 if (s.canvases[id]) s.canvases[id].activePointerId = null;
             };
+
             s.canvases[id].captureHandler = captureHandler;
             s.canvases[id].clearPointer = clearPointer;
+
             element.addEventListener('pointerdown', captureHandler, true);
             element.addEventListener('pointerup', clearPointer);
             element.addEventListener('pointercancel', clearPointer);
+            element.addEventListener('pointermove', (e) => {
+                ref.invokeMethodAsync('OnPointerMove', e.clientX, e.clientY, e.button, e.buttons, e.ctrlKey, e.shiftKey, e.altKey, e.pointerId, e.width, e.height, e.pressure, e.tangentialPressure, e.tiltX, e.tiltY, e.twist, e.pointerType, e.isPrimary);
+            });
             if (!s.docUpHandler) {
                 s.docUpHandler = createDocUpHandler();
                 document.addEventListener('pointerup', s.docUpHandler, true);

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Blazor.Diagrams.Core.Extensions;
 using Blazor.Diagrams.Core.Geometry;
 using Blazor.Diagrams.Core.Models;
@@ -87,7 +87,11 @@ public class NodeRenderer : ComponentBase, IDisposable
 
     protected override void BuildRenderTree(RenderTreeBuilder builder)
     {
-        if (!Node.Visible)
+        // При CssHiding=true нод всегда остаётся в render tree, скрывается через display:none.
+        // Это устраняет mount/unmount StockPureGrid + StockCell при pan/zoom — нет Scripting spike.
+        // При CssHiding=false (стандартное поведение) — убираем из DOM при Visible=false.
+        bool cssHiding = BlazorDiagram.Options.Virtualization.CssHiding;
+        if (!Node.Visible && !cssHiding)
             return;
 
         var componentType = BlazorDiagram.GetComponent(Node) ??
@@ -112,6 +116,9 @@ public class NodeRenderer : ComponentBase, IDisposable
                 var originY = (Node.Size?.Height ?? 0) * Node.RotationPivotY;
                 transform += $" translate({originX.ToInvariantString()} {originY.ToInvariantString()}) rotate({Node.Rotation.ToInvariantString()}) translate({(-originX).ToInvariantString()} {(-originY).ToInvariantString()})";
             }
+            // При CssHiding и невидимом SVG-ноде — скрываем через visibility
+            if (!Node.Visible && cssHiding)
+                transform += " scale(0)"; // SVG не поддерживает display:none без wrapper; scale(0) скрывает
             builder.AddAttribute(3, "transform", transform);
         }
         else
@@ -127,6 +134,10 @@ public class NodeRenderer : ComponentBase, IDisposable
                 var originY = (Node.Size?.Height ?? 0) * Node.RotationPivotY;
                 style.Append($"; transform-origin: {originX.ToInvariantString()}px {originY.ToInvariantString()}px; transform: rotate({Node.Rotation.ToInvariantString()}deg)");
             }
+            // При CssHiding и невидимом ноде: display:none скрывает из layout, pointer-events:none
+            // блокирует клики. Компонент остаётся смонтированным — нет lifecycle overhead при pan/zoom.
+            if (!Node.Visible && cssHiding)
+                style.Append("; display:none; pointer-events:none");
             builder.AddAttribute(3, "style", style.ToString());
         }
 
@@ -146,13 +157,23 @@ public class NodeRenderer : ComponentBase, IDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !Node.Visible)
+        // При стандартной виртуализации (CssHiding=false): если нод невидим на firstRender,
+        // компонент не был отрендерен (BuildRenderTree вернул пусто) — нечего регистрировать.
+        // При CssHiding=true: нод отрендерен (display:none), но ElementReference не имеет
+        // реального layout — регистрируем ResizeObserver только когда нод станет видимым
+        // (_becameVisible=true) чтобы получить корректный размер.
+        bool cssHiding = BlazorDiagram.Options.Virtualization.CssHiding;
+        if (firstRender && !Node.Visible && !cssHiding)
             return;
 
         if (firstRender || _becameVisible)
         {
             _becameVisible = false;
 
+            // При CssHiding и невидимом ноде на firstRender откладываем регистрацию ResizeObserver:
+            // display:none даёт size=0 → OnResize(zero) пропустим, но зарегистрируем впрок.
+            // Когда нод станет видимым (OnVisibilityChanged → ReRender → _becameVisible=true),
+            // ResizeObserver уже зарегистрирован и получит актуальный размер.
             if (!Node.ControlledSize)
             {
                 await JsRuntime.ObserveResizes(_element, _reference!);

@@ -15,4 +15,15 @@ public class DiagramVirtualizationOptions
     /// По умолчанию 0 (без расширения, обратная совместимость).
     /// </summary>
     public double Padding { get; set; } = 0;
+
+    /// <summary>
+    /// Режим CSS-скрытия: при Visible=false нод скрывается через display:none,
+    /// но НЕ удаляется из Blazor render tree (компонент остаётся смонтированным).
+    /// Устраняет mount/unmount overhead при pan/zoom: StockPureGrid и StockCell
+    /// не пересоздаются при повторном входе в viewport — нет Scripting spike.
+    /// SignalR обновления работают нормально — компонент живёт в памяти и реагирует
+    /// на RaiseStateChanged() независимо от CSS visibility. Data freshness бесплатна.
+    /// Tradeoff: все ноды всегда в DOM-памяти (аналогично VirtualizationEnabled=false).
+    /// </summary>
+    public bool CssHiding { get; set; } = false;
 }

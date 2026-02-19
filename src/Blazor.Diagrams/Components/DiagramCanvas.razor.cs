@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Blazor.Diagrams.Core.Geometry;
 using Blazor.Diagrams.Extensions;
@@ -12,6 +12,8 @@ public partial class DiagramCanvas : IAsyncDisposable
 {
     private DotNetObjectReference<DiagramCanvas>? _reference;
     private bool _shouldRender;
+    private DateTime _lastRenderTime = DateTime.MinValue;
+    private bool _animationFrameRequested;
 
     protected ElementReference elementReference;
 
@@ -71,11 +73,32 @@ public partial class DiagramCanvas : IAsyncDisposable
         BlazorDiagram.SetContainer(rect);
     }
 
+    /// <summary>
+    /// Вызывается из JS при pointerup/pointercancel на document, когда кнопка отпущена вне канваса.
+    /// Обходит отсутствие pointer capture в Blazor Server — напрямую завершает перетаскивание/пан.
+    /// </summary>
+    [JSInvokable]
+    public void OnPointerUpOutside(double clientX, double clientY, long button, long buttons, long pointerId)
+    {
+        var e = new Core.Events.PointerEventArgs(clientX, clientY, button, buttons, false, false, false,
+            pointerId, 0, 0, 0, 0, 0, "mouse", true);
+        BlazorDiagram.TriggerPointerUp(null, e);
+    }
+
+
     protected override bool ShouldRender()
     {
         if (!_shouldRender) return false;
 
+        // Ограничение до 60fps для предотвращения избыточного рендеринга
+        var now = DateTime.UtcNow;
+        if ((now - _lastRenderTime).TotalMilliseconds < 16) // ~60fps
+        {
+            return false;
+        }
+
         _shouldRender = false;
+        _lastRenderTime = now;
         return true;
     }
 
@@ -107,6 +130,19 @@ public partial class DiagramCanvas : IAsyncDisposable
     private void OnDiagramChanged()
     {
         _shouldRender = true;
-        InvokeAsync(StateHasChanged);
+
+        // Синхронизация с кадрами браузера для плавного рендеринга
+        if (!_animationFrameRequested)
+        {
+            _animationFrameRequested = true;
+#pragma warning disable CA2012 // Use ValueTasks correctly - safe in this context
+            InvokeAsync(async () =>
+            {
+                await Task.Yield(); // Позволяет браузеру обработать другие события
+                StateHasChanged();
+                _animationFrameRequested = false;
+            });
+#pragma warning restore CA2012
+        }
     }
 }
