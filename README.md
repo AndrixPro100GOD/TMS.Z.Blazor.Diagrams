@@ -1,4 +1,4 @@
-# TMS.Z.Blazor.Diagrams
+﻿# TMS.Z.Blazor.Diagrams
 
 ## Changes from Original Z.Blazor.Diagrams
 
@@ -18,7 +18,7 @@ This fork contains additional features and fixes developed for the TMS (Transpor
 - **Compatibility**: No breaking changes - new properties are optional
 - **Version**: 3.0.3.1 (TMS.Z.Blazor.Diagrams, TMS.Z.Blazor.Diagrams.Core)
 
-#### 2. Rendering and Performance Optimization - v3.0.3.6
+#### 2. Rendering and Performance Optimization - v3.0.3.7
 - **Performance Improvements**: Rendering optimization and pointer event handling
 - **Virtualization**: Enhanced node visibility handling with size change subscriptions
 
