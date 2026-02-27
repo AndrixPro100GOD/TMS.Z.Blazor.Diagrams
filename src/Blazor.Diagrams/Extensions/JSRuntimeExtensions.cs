@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Blazor.Diagrams.Core.Geometry;
 using Microsoft.AspNetCore.Components;
@@ -26,8 +26,23 @@ public static class JSRuntimeExtensions
         }
     }
 
+    /// <summary>
+    /// Отменяет подписку ResizeObserver для элемента.
+    /// При отключении circuit (disconnect) JS interop недоступен — исключение не пробрасывается.
+    /// </summary>
     public static async Task UnobserveResizes(this IJSRuntime jsRuntime, ElementReference element)
     {
-        await jsRuntime.InvokeVoidAsync("ZBlazorDiagrams.unobserve", element, element.Id);
+        try
+        {
+            await jsRuntime.InvokeVoidAsync("ZBlazorDiagrams.unobserve", element, element.Id);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit уже отключён (вкладка закрыта, навигация) — cleanup невозможен, игнорируем.
+        }
+        catch (ObjectDisposedException)
+        {
+            // DotNetObjectReference или circuit уже disposed.
+        }
     }
 }

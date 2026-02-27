@@ -1,4 +1,4 @@
-﻿# TMS.Z.Blazor.Diagrams
+# TMS.Z.Blazor.Diagrams
 
 ## Changes from Original Z.Blazor.Diagrams
 
@@ -21,6 +21,23 @@ This fork contains additional features and fixes developed for the TMS (Transpor
 #### 2. Rendering and Performance Optimization - v3.0.3.7
 - **Performance Improvements**: Rendering optimization and pointer event handling
 - **Virtualization**: Enhanced node visibility handling with size change subscriptions
+
+#### 3. Non-Interactive Nodes Support - v3.0.3.8
+- **Description**: Added ability to make individual nodes non-interactive without JavaScript interop
+- **Use Case**: Disable user interaction with specific nodes while keeping them visible
+- **Model Changes**:
+  - `NodeModel`: added `Interactable` property (default: `true`)
+  - `DiagramOptions`: added `NonInteractableNodeCssClass` property (default: `"non-interactable"`)
+- **Visualization**:
+  - `NodeRenderer`: automatically applies CSS class when `Interactable = false`
+  - CSS class blocks pointer events via project-configurable class name
+  - No JavaScript required - changes take effect on next render
+- **Benefits**:
+  - Zero JS interop overhead for dynamic interaction state changes
+  - Visual feedback through CSS (can be customized per project)
+  - Maintains node visibility while preventing selection/drag operations
+- **Compatibility**: Fully backward compatible - new properties are optional
+- **Version**: 3.0.3.8 (all packages)
 
 ### 🛠 Technical Fixes
 
@@ -45,6 +62,26 @@ This fork contains additional features and fixes developed for the TMS (Transpor
   - `DiagramCanvas.razor.cs`: `OnPointerUpOutside` method for drag completion
   - Support for both WASM and Server-side Blazor
 - **Result**: Proper drag completion regardless of mouse release location
+
+#### 5. Dependencies Update
+- **Description**: Updated ASP.NET Core package versions for improved security and stability
+- **Changes**:
+  - .NET 6.0: ASP.NET Core packages updated to 6.0.36
+  - .NET 7.0: ASP.NET Core packages updated to 7.0.20
+  - .NET 8.0: ASP.NET Core packages updated to 8.0.24
+  - .NET 9.0: ASP.NET Core packages updated to 9.0.13
+- **Benefits**: Latest security patches and performance improvements
+- **Compatibility**: No breaking changes - all updates are patch/minor versions
+
+#### 6. Circuit Disconnection Handling
+- **Problem**: Exceptions thrown when trying to cleanup ResizeObserver after Blazor circuit disconnection
+- **Solution**: Added exception handling in `JSRuntimeExtensions.UnobserveResizes()`
+- **Technical Details**:
+  - Catches `JSDisconnectedException` when circuit is already disconnected
+  - Catches `ObjectDisposedException` when DotNetObjectReference is disposed
+  - Graceful degradation - cleanup is skipped when impossible
+- **Benefits**: Prevents application crashes during navigation or tab closure
+- **Compatibility**: Backward compatible - no API changes
 
 ### 📊 Performance Comparison
 

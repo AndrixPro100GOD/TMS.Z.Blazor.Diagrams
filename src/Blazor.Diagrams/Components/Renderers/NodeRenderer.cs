@@ -96,10 +96,14 @@ public class NodeRenderer : ComponentBase, IDisposable
 
         var componentType = BlazorDiagram.GetComponent(Node) ??
                             (_isSvg ? typeof(SvgNodeWidget) : typeof(NodeWidget));
+        // Имя класса non-interactable берётся из настроек диаграммы — проект может переопределить.
+        var nonInteractableClass = BlazorDiagram.Options.NonInteractableNodeCssClass;
+
         var classes = new StringBuilder("diagram-node")
             .AppendIf(" locked", Node.Locked)
             .AppendIf(" selected", Node.Selected)
-            .AppendIf(" grouped", Node.Group != null);
+            .AppendIf(" grouped", Node.Group != null)
+            .AppendIf($" {nonInteractableClass}", !Node.Interactable); // класс блокировки взаимодействия
 
         builder.OpenElement(0, _isSvg ? "g" : "div");
         builder.AddAttribute(1, "class", classes.ToString());

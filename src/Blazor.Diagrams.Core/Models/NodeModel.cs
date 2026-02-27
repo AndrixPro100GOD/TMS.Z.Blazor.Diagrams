@@ -1,4 +1,4 @@
-﻿using Blazor.Diagrams.Core.Geometry;
+using Blazor.Diagrams.Core.Geometry;
 using Blazor.Diagrams.Core.Models.Base;
 using System;
 using System.Collections.Generic;
@@ -48,6 +48,13 @@ public class NodeModel : MovableModel, IHasBounds, IHasShape, ILinkable
 
     public GroupModel? Group { get; internal set; }
     public string? Title { get; set; }
+
+    /// <summary>
+    /// Когда false — NodeRenderer добавляет CSS-класс из DiagramOptions.NonInteractableNodeCssClass
+    /// к wrapper-div diagram-node, визуально блокируя pointer-events для этого нода.
+    /// Управляется из модели без JS interop — изменение вступает в силу при следующем рендере.
+    /// </summary>
+    public bool Interactable { get; set; } = true;
 
     /// <summary>
     /// Угол поворота нода в градусах (по часовой стрелке). Изменение приводит к Refresh/RefreshLinks

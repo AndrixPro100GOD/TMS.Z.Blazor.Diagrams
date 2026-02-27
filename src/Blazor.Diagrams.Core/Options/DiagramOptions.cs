@@ -12,4 +12,11 @@ public class DiagramOptions
     public virtual DiagramGroupOptions Groups { get; } = new();
     public virtual DiagramConstraintsOptions Constraints { get; } = new();
     public virtual DiagramVirtualizationOptions Virtualization { get; } = new();
+
+    /// <summary>
+    /// CSS-класс, применяемый к wrapper-div diagram-node когда NodeModel.Interactable = false.
+    /// По умолчанию "non-interactable". Переопределите под проектный CSS при необходимости.
+    /// Пример: options.NonInteractableNodeCssClass = "myapp-node-blocked";
+    /// </summary>
+    public string NonInteractableNodeCssClass { get; set; } = "non-interactable";
 }
