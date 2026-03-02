@@ -37,7 +37,10 @@ This fork contains additional features and fixes developed for the TMS (Transpor
   - Visual feedback through CSS (can be customized per project)
   - Maintains node visibility while preventing selection/drag operations
 - **Compatibility**: Fully backward compatible - new properties are optional
-- **Version**: 3.0.3.8 (all packages)
+- **Version**: 3.0.3.9 (all packages)
+
+#### 4. Interactive Controls Pointer-Capture Guard - v3.0.3.9
+- Restores clicks/inputs inside node controls by skipping pointer-capture for interactive elements in `wwwroot/script.js`.
 
 ### 🛠 Technical Fixes
 
@@ -82,6 +85,20 @@ This fork contains additional features and fixes developed for the TMS (Transpor
   - Graceful degradation - cleanup is skipped when impossible
 - **Benefits**: Prevents application crashes during navigation or tab closure
 - **Compatibility**: Backward compatible - no API changes
+
+#### 7. Interactive Controls Pointer-Capture Guard
+- **Problem**: Global pointer-capture on `diagram-canvas` could intercept interactions inside node UI (buttons, switches, inputs), resulting in visual click feedback without actual `OnClick`/input handling.
+- **Solution**: Added interactive-target guard in `wwwroot/script.js` before calling `setPointerCapture`.
+- **Technical Details**:
+  - Added helper `isInteractiveTarget(target)` with selector-based checks (`button`, `input`, `textarea`, `select`, `a`, `[contenteditable]`, MudBlazor control classes, etc.)
+  - In pointerdown capture handler: skip `setPointerCapture` for interactive descendants
+  - Kept pointer-capture behavior unchanged for non-interactive canvas area (drag/release logic still works)
+- **Benefits**:
+  - Restores correct click/input behavior in embedded node controls
+  - Removes need for per-control `pointerdown:stopPropagation` workarounds in app code
+  - Preserves drag robustness fixed by pointer-capture release handling
+- **Changed Files**:
+  - `src/Blazor.Diagrams/wwwroot/script.js`
 
 ### 📊 Performance Comparison
 

@@ -23,6 +23,14 @@ function createDocUpHandler() {
     };
 }
 
+function isInteractiveTarget(target) {
+    if (!target || !(target instanceof Element)) return false;
+    return !!target.closest(
+        'button, input, textarea, select, option, label, a, [contenteditable="true"], [role="button"], ' +
+        '.mud-button-root, .mud-icon-button, .mud-switch, .mud-input, .mud-input-control, .mud-select, .mud-autocomplete'
+    );
+}
+
 var s = {
     canvases: {},
     tracked: {},
@@ -67,6 +75,11 @@ var s = {
 
             // Оптимизированные обработчики с throttle и RAF синхронизацией
             const captureHandler = (e) => {
+                // Не захватываем pointer для интерактивных контролов внутри нодов:
+                // иначе клики/ввод в MudBlazor-элементах могут "ломаться" из-за глобального capture.
+                if (isInteractiveTarget(e.target)) {
+                    return;
+                }
                 element.setPointerCapture(e.pointerId);
                 s.canvases[id].activePointerId = e.pointerId;
             };
@@ -81,9 +94,6 @@ var s = {
             element.addEventListener('pointerdown', captureHandler, true);
             element.addEventListener('pointerup', clearPointer);
             element.addEventListener('pointercancel', clearPointer);
-            element.addEventListener('pointermove', (e) => {
-                ref.invokeMethodAsync('OnPointerMove', e.clientX, e.clientY, e.button, e.buttons, e.ctrlKey, e.shiftKey, e.altKey, e.pointerId, e.width, e.height, e.pressure, e.tangentialPressure, e.tiltX, e.tiltY, e.twist, e.pointerType, e.isPrimary);
-            });
             if (!s.docUpHandler) {
                 s.docUpHandler = createDocUpHandler();
                 document.addEventListener('pointerup', s.docUpHandler, true);
