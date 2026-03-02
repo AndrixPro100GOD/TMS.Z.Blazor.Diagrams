@@ -1,10 +1,10 @@
-# TMS.Z.Blazor.Diagrams
+﻿# TMS.Z.Blazor.Diagrams
 
 ## Changes from Original Z.Blazor.Diagrams
 
 This fork contains additional features and fixes developed for the TMS (Transportation Management System). Below are the main changes:
 
-### 🚀 New Features
+### рџљЂ New Features
 
 #### 1. Node Rotation Support - v3.0.3.1
 - **Description**: Added full support for node rotation with configurable pivot point
@@ -37,12 +37,12 @@ This fork contains additional features and fixes developed for the TMS (Transpor
   - Visual feedback through CSS (can be customized per project)
   - Maintains node visibility while preventing selection/drag operations
 - **Compatibility**: Fully backward compatible - new properties are optional
-- **Version**: 3.0.3.9 (all packages)
+- **Version**: 3.0.3.10 (all packages)
 
-#### 4. Interactive Controls Pointer-Capture Guard - v3.0.3.9
+#### 4. Interactive Controls Pointer-Capture Guard - v3.0.3.10
 - Restores clicks/inputs inside node controls by skipping pointer-capture for interactive elements in `wwwroot/script.js`.
 
-### 🛠 Technical Fixes
+### рџ›  Technical Fixes
 
 #### 3. CSS-hiding Virtualization Mode
 - **Problem**: Standard virtualization caused catastrophic delays during pan/zoom (up to 1700ms) due to heavy component recreation
@@ -100,7 +100,7 @@ This fork contains additional features and fixes developed for the TMS (Transpor
 - **Changed Files**:
   - `src/Blazor.Diagrams/wwwroot/script.js`
 
-### 📊 Performance Comparison
+### рџ“Љ Performance Comparison
 
 | Virtualization Mode | Drag Latency | Scripting Overhead | DOM Memory |
 |---------------------|-------------|-------------------|------------|
@@ -108,7 +108,7 @@ This fork contains additional features and fixes developed for the TMS (Transpor
 | Standard | ~1700ms | ~725ms | viewport only |
 | CSS-hiding | ~150ms | low | all nodes |
 
-### 🔧 Configuration
+### рџ”§ Configuration
 
 To use new features in your application:
 
@@ -123,7 +123,7 @@ To use new features in your application:
 }
 ```
 
-### 📝 Change Documentation
+### рџ“ќ Change Documentation
 
 Detailed technical documentation is available in `src/Documents/`:
 - `CSS_HIDING_VIRTUALIZATION.md` - Complete CSS-hiding mode description
