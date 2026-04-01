@@ -1,4 +1,4 @@
-﻿using Blazor.Diagrams.Core.Behaviors;
+using Blazor.Diagrams.Core.Behaviors;
 using Blazor.Diagrams.Core.Extensions;
 using Blazor.Diagrams.Core.Geometry;
 using Blazor.Diagrams.Core.Layers;
@@ -25,6 +25,11 @@ public abstract class Diagram
     public event Action<Model?, PointerEventArgs>? PointerEnter;
     public event Action<Model?, PointerEventArgs>? PointerLeave;
     public event Action<KeyboardEventArgs>? KeyDown;
+    /// <summary>
+    /// Вызывается при отпускании клавиши. Используется для отслеживания состояния модификаторов
+    /// (например, Space для режима пана) без потери синхронизации при потере фокуса.
+    /// </summary>
+    public event Action<KeyboardEventArgs>? KeyUp;
     public event Action<WheelEventArgs>? Wheel;
     public event Action<Model?, PointerEventArgs>? PointerClick;
     public event Action<Model?, PointerEventArgs>? PointerDoubleClick;
@@ -34,6 +39,12 @@ public abstract class Diagram
     public event Action? ZoomChanged;
     public event Action? ContainerChanged;
     public event Action? Changed;
+
+    /// <summary>
+    /// CSS-курсор для области диаграммы. Устанавливается поведениями (PanBehavior и др.)
+    /// для визуальной обратной связи: "grab" в режиме ожидания пана, "grabbing" во время пана.
+    /// </summary>
+    public string PointerCursor { get; private set; } = "default";
 
     protected Diagram(bool registerDefaultBehaviors = true)
     {
@@ -396,7 +407,22 @@ public abstract class Diagram
 
     public void TriggerKeyDown(KeyboardEventArgs e) => KeyDown?.Invoke(e);
 
+    public void TriggerKeyUp(KeyboardEventArgs e) => KeyUp?.Invoke(e);
+
     public void TriggerWheel(WheelEventArgs e) => Wheel?.Invoke(e);
+
+    /// <summary>
+    /// Устанавливает CSS-курсор для канваса диаграммы. Вызов игнорируется, если курсор не изменился.
+    /// Автоматически инициирует перерендеринг через <see cref="Refresh"/>.
+    /// </summary>
+    public void SetPointerCursor(string cursor)
+    {
+        if (PointerCursor == cursor)
+            return;
+
+        PointerCursor = cursor;
+        Refresh();
+    }
 
     public void TriggerPointerClick(Model? model, PointerEventArgs e) => PointerClick?.Invoke(model, e);
 

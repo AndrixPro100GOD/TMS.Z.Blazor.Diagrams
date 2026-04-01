@@ -80,6 +80,16 @@ var s = {
                 if (isInteractiveTarget(e.target)) {
                     return;
                 }
+                // Средняя кнопка мыши (button===1): блокируем браузерный "autoscroll" режим
+                // (крестовый курсор со стрелками). Без этого browser перехватывает mousemove
+                // под свою прокрутку, и наш pan не работает.
+                // Дополнительно уведомляем .NET прямо из capture-фазы — до того, как вложенные
+                // элементы (напр. StockCell) вызовут e.stopPropagation() в bubble-фазе.
+                // Это гарантирует, что PanBehavior.StartMiddleButtonPan всегда получит событие.
+                if (e.button === 1) {
+                    e.preventDefault();
+                    c.ref.invokeMethodAsync('OnMiddleButtonPointerDownCapture', e.clientX, e.clientY, e.pointerId);
+                }
                 element.setPointerCapture(e.pointerId);
                 s.canvases[id].activePointerId = e.pointerId;
             };

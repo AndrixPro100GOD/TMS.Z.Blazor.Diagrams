@@ -1,10 +1,12 @@
 <div class="diagram-canvas @Class"
      tabindex="-1"
      @ref="elementReference"
+     style="@GetCanvasStyle()"
      @onpointerdown="OnPointerDown"
      @onpointermove="OnPointerMove"
      @onpointerup="OnPointerUp"
      @onkeydown="OnKeyDown"
+     @onkeyup="OnKeyUp"
      @onwheel="OnWheel"
      @onpointermove:preventDefault
      @onwheel:stopPropagation>

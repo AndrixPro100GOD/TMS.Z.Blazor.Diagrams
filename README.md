@@ -4,7 +4,7 @@
 
 This fork contains additional features and fixes developed for the TMS (Transportation Management System). Below are the main changes:
 
-### рџљЂ New Features
+### New Features
 
 #### 1. Node Rotation Support - v3.0.3.1
 - **Description**: Added full support for node rotation with configurable pivot point
@@ -42,7 +42,98 @@ This fork contains additional features and fixes developed for the TMS (Transpor
 #### 4. Interactive Controls Pointer-Capture Guard - v3.0.3.10
 - Restores clicks/inputs inside node controls by skipping pointer-capture for interactive elements in `wwwroot/script.js`.
 
-### рџ›  Technical Fixes
+#### 5. Modern Pan Controls (Middle Button + Space Pan) — v3.0.3.11
+
+Industry-standard diagram navigation, consistent with Figma, draw.io, Miro, Lucidchart and Google Maps.
+
+**Three pan modes — all independently configurable via `DiagramOptions`:**
+
+| Mode | Gesture | Works on nodes? | Option |
+|------|---------|-----------------|--------|
+| Background pan | Left click + drag on **empty canvas** | No | `AllowPanning` (existing) |
+| Middle button pan | Middle mouse button (scroll wheel press) + drag | **Yes** | `AllowMiddleButtonPan` |
+| Space pan | Hold **Space** + left click + drag | **Yes** | `AllowSpacePan` |
+
+**Cursor feedback (all three modes):**
+
+| State | Cursor |
+|-------|--------|
+| Space held, not dragging | `grab` |
+| Any pan active (dragging) | `grabbing` |
+| Idle / pan ended | `default` |
+
+Cursor is driven by `Diagram.PointerCursor`. Custom behaviors can override it via `Diagram.SetPointerCursor(string)`.
+
+**New APIs:**
+
+```csharp
+// DiagramOptions — all default to true
+bool AllowMiddleButtonPan { get; set; }   // middle button pan on nodes and background
+bool AllowSpacePan { get; set; }          // Space + left drag pan (Figma-style)
+
+// Diagram
+event Action<KeyboardEventArgs>? KeyUp;                // fired on key release
+void TriggerKeyUp(KeyboardEventArgs e);                // called by DiagramCanvas @onkeyup
+string PointerCursor { get; }                          // current CSS cursor ("default" | "grab" | "grabbing")
+void SetPointerCursor(string cursor);                  // set cursor + trigger re-render (no-op if unchanged)
+```
+
+**Configuration example:**
+
+```csharp
+// Disable Space pan (e.g. Space is used for a custom shortcut)
+BlazorDiagram.Options.AllowSpacePan = false;
+
+// Disable middle button pan
+BlazorDiagram.Options.AllowMiddleButtonPan = false;
+```
+
+**Browser autoscroll prevention:**
+Middle button click no longer activates the browser's native autoscroll mode (the scrolling-cross cursor). This is handled in `wwwroot/script.js` via `e.preventDefault()` for `button === 1` inside the pointer-capture handler.
+
+**Changed files:**
+- `Blazor.Diagrams.Core/Options/DiagramOptions.cs` — `AllowMiddleButtonPan`, `AllowSpacePan`
+- `Blazor.Diagrams.Core/Diagram.cs` — `KeyUp` event, `TriggerKeyUp`, `PointerCursor`, `SetPointerCursor`
+- `Blazor.Diagrams.Core/Behaviors/PanBehavior.cs` — three-mode pan, Space tracking, cursor management
+- `Blazor.Diagrams/Components/DiagramCanvas.razor` — `@onkeyup`, `style="@GetCanvasStyle()"`
+- `Blazor.Diagrams/Components/DiagramCanvas.razor.cs` — `OnKeyUp`, `GetCanvasStyle`, `OnMiddleButtonPointerDownCapture`
+- `Blazor.Diagrams/wwwroot/script.js` — `e.preventDefault()` for middle button; capture-phase `.NET` call for pan-through-stopPropagation nodes
+- `Blazor.Diagrams/wwwroot/script.min.js` — synced with script.js (was significantly outdated)
+
+**Compatibility:** Fully backward compatible — all new options default to `true` (enabled).
+
+---
+
+#### 6. Pan Teleportation Fix During Simultaneous Scroll — v3.0.4.1
+
+**Problem:** When the user scrolled the mouse wheel (zoom) while actively panning (dragging), the diagram view would instantly "teleport" to a wrong position.
+
+**Root cause:** `PanBehavior.Move` used an *absolute* tracking formula that stored the initial pan position (`_initialPan`) and computed the pan delta relative to it:
+
+```
+deltaX = (mouseX - startMouseX) - (currentPan.X - startPan.X)
+```
+
+When zoom fired simultaneously, it changed `Diagram.Pan` to keep the focus point under the cursor. This caused `currentPan.X - startPan.X` to include the zoom-induced pan offset, making the very next `Move` call apply a huge false delta — the "teleportation".
+
+**Fix:** Switched `Move` to *incremental* (frame-by-frame) tracking:
+
+```csharp
+var deltaX = clientX - _lastClientX;
+var deltaY = clientY - _lastClientY;
+_lastClientX = clientX;
+_lastClientY = clientY;
+Diagram.UpdatePan(deltaX, deltaY);
+```
+
+Each `Move` now only cares about mouse displacement since the **previous** `Move` call, fully immune to external `Diagram.Pan` changes (zoom, programmatic updates, etc.).
+
+**Changed files:**
+- `Blazor.Diagrams.Core/Behaviors/PanBehavior.cs` — `Move` method
+
+---
+
+### Technical Fixes
 
 #### 3. CSS-hiding Virtualization Mode
 - **Problem**: Standard virtualization caused catastrophic delays during pan/zoom (up to 1700ms) due to heavy component recreation
@@ -100,7 +191,9 @@ This fork contains additional features and fixes developed for the TMS (Transpor
 - **Changed Files**:
   - `src/Blazor.Diagrams/wwwroot/script.js`
 
-### рџ“Љ Performance Comparison
+---
+
+### Performance Comparison
 
 | Virtualization Mode | Drag Latency | Scripting Overhead | DOM Memory |
 |---------------------|-------------|-------------------|------------|
@@ -108,7 +201,7 @@ This fork contains additional features and fixes developed for the TMS (Transpor
 | Standard | ~1700ms | ~725ms | viewport only |
 | CSS-hiding | ~150ms | low | all nodes |
 
-### рџ”§ Configuration
+### Configuration
 
 To use new features in your application:
 
@@ -123,7 +216,14 @@ To use new features in your application:
 }
 ```
 
-### рџ“ќ Change Documentation
+```csharp
+// Pan options (all default to true)
+BlazorDiagram.Options.AllowPanning = true;           // left button on empty canvas
+BlazorDiagram.Options.AllowMiddleButtonPan = true;   // middle button anywhere
+BlazorDiagram.Options.AllowSpacePan = true;          // Space + left drag anywhere
+```
+
+### Change Documentation
 
 Detailed technical documentation is available in `src/Documents/`:
 - `CSS_HIDING_VIRTUALIZATION.md` - Complete CSS-hiding mode description

@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Blazor.Diagrams.Core;
 using Blazor.Diagrams.Core.Geometry;
 using Blazor.Diagrams.Extensions;
 using Microsoft.AspNetCore.Components;
@@ -74,6 +75,22 @@ public partial class DiagramCanvas : IAsyncDisposable
     }
 
     /// <summary>
+    /// Вызывается из JS в фазе capture при нажатии средней кнопки мыши.
+    /// Фаза capture гарантирует вызов до stopPropagation внутренних элементов (напр. StockCell),
+    /// поэтому <see cref="Blazor.Diagrams.Core.Behaviors.PanBehavior"/> получает событие
+    /// даже когда ячейка стока останавливает всплытие pointer-события.
+    /// </summary>
+    [JSInvokable]
+    public void OnMiddleButtonPointerDownCapture(double clientX, double clientY, long pointerId)
+    {
+        // Передаём с model=null — PanBehavior.StartMiddleButtonPan не зависит от нода под курсором.
+        // buttons=4 соответствует MiddleButton в W3C Pointer Events spec (битовая маска).
+        var e = new Core.Events.PointerEventArgs(clientX, clientY, (long)MouseEventButton.Wheel, 4,
+            false, false, false, pointerId, 0, 0, 0, 0, 0, "mouse", true);
+        BlazorDiagram.TriggerPointerDown(null, e);
+    }
+
+    /// <summary>
     /// Вызывается из JS при pointerup/pointercancel на document, когда кнопка отпущена вне канваса.
     /// Обходит отсутствие pointer capture в Blazor Server — напрямую завершает перетаскивание/пан.
     /// </summary>
@@ -120,6 +137,21 @@ public partial class DiagramCanvas : IAsyncDisposable
     private void OnKeyDown(KeyboardEventArgs e)
     {
         BlazorDiagram.TriggerKeyDown(e.ToCore());
+    }
+
+    private void OnKeyUp(KeyboardEventArgs e)
+    {
+        BlazorDiagram.TriggerKeyUp(e.ToCore());
+    }
+
+    /// <summary>
+    /// Возвращает inline-стиль канваса. Включает курсор из <see cref="BlazorDiagram.PointerCursor"/>
+    /// — меняется поведениями в режиме пана (grab / grabbing / default).
+    /// </summary>
+    private string GetCanvasStyle()
+    {
+        var cursor = BlazorDiagram.PointerCursor;
+        return cursor == "default" ? string.Empty : $"cursor: {cursor};";
     }
 
     private void OnWheel(WheelEventArgs e)
